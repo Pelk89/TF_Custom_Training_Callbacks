@@ -1,6 +1,8 @@
 
 # Tensorflow Custom Training with Custom Callbacks
 
+<img src="https://github.com/Pelk89/TF_Custom_Training_Callbacks/blob/main/tf_keras.png" width="100%">
+
 
 
 
