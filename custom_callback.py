@@ -40,7 +40,7 @@ class CustomReduceLRoP():
 
 
     def __init__(self,
-                 ## Custom modification:  Deprecated
+                 ## Custom modification:  Deprecated due to focusing on validation loss
                  # monitor='val_loss',
                  factor=0.1,
                  patience=10,
@@ -97,7 +97,9 @@ class CustomReduceLRoP():
                             'fallback to auto mode.', self.mode)
             self.mode = 'auto'
         if (self.mode == 'min' or
-                (self.mode == 'auto' and 'acc' not in self.monitor)):
+                ## Custom modification: Deprecated due to focusing on validation loss
+                # (self.mode == 'auto' and 'acc' not in self.monitor)):
+                (self.mode == 'auto')):
             self.monitor_op = lambda a, b: np.less(a, b - self.min_delta)
             self.best = np.Inf
         else:
