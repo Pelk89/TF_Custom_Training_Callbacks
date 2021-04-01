@@ -1,13 +1,11 @@
 
 # Tensorflow Custom Training with Custom Callbacks
 
-<img src="https://github.com/Pelk89/TF_Custom_Training_Callbacks/blob/main/tf_keras.png" width="100%">
 
 
 
 
-
-You want to use your low-level training and evaluation loops and don’t want to miss the convenience of the Keras callbacks? No problem! In this tutorial, I will show you how to simply implement Keras callbacks in low-level training and evaluation loop. For this article, I assume that you are familiar with the basic terminology and principles of Machine Learning and have done some toy examples with Keras.
+You want to use low-level training and evaluation loops and don’t want to miss the convenience of the Keras callbacks? No problem! In this tutorial, we will implement a Keras callback in a low-level training and evaluation loop. For this article, I assume that you are familiar with the basic terminology and principles of Machine Learning and have done some toy examples with Keras.
 
 *HINT: When I first got in touch with Tensorflow and Keras, I was overwhelmed with the different terminology of Machine Learning and was happy that I found the [Machine Learning Glossary](https://developers.google.com/machine-learning/glossary/#l) by Google.*
 
@@ -25,11 +23,11 @@ model.fit(dataset, epochs=10, callbacks=my_callbacks)
 ```
 
 
-At each stage of the training (e.g. at the start or end of an epoch) all relevant methods will be called automatically. You can find more detailed information about the callback methods in the Keras [documentation](https://keras.io/guides/writing_your_own_callbacks/). To write your Callbacks I recommend the article [Building Custom Callbacks with Keras and TensorFlow 2](https://towardsdatascience.com/building-custom-callbacks-with-keras-and-tensorflow-2-85e1b79915a3) by [B. Chen](https://bindichen.medium.com/).
+At each stage of the training (e.g. at the start or end of an epoch) all relevant methods will be called automatically. You can find more detailed information about the callback methods in the Keras [documentation](https://keras.io/guides/writing_your_own_callbacks/). To write your Callbacks you should give the article [Building Custom Callbacks with Keras and TensorFlow 2](https://towardsdatascience.com/building-custom-callbacks-with-keras-and-tensorflow-2-85e1b79915a3) by [B. Chen](https://bindichen.medium.com/) a try.
 
 I won’t go into detail about how to implement a custom training loop. So if you want to have more information about that I recommend the [Keras Classification Tutorial](https://keras.io/guides/writing_a_training_loop_from_scratch/). For this tutorial, we will slightly modify the mentioned classification tutorial for the MNIST dataset. The MNIST dataset contains handwritten digits and is commonly used as toy example for Machine Learning. Furthermore, we will implement the widely used callback ReduceLROnPlateau and add also an exponential reduction of the learning rate.
 
-This tutorial can be found on my [Github](https://github.com/Pelk89/TF_Custom_Training_Callbacks). Use git clone to run it locally in Jupyter notebook.
+This tutorial can be found on [Github](https://github.com/Pelk89/TF_Custom_Training_Callbacks). Use git clone to run it locally in Jupyter notebook.
 ```bash
 git clone https://github.com/Pelk89/TF_Custom_Training_Callbacks.git
 ```
@@ -164,7 +162,7 @@ class ReduceLROnPlateau(Callback):
     return self.cooldown_counter > 0
 ```
 
-When we analyze the class we will see for example the explanation for the arguments that can be passed to the *__init__* method of the class. We will go into detail about the important arguments for this tutorial. A more detailed overview can be found at Keras [ReduceLROnPlateau](https://keras.io/api/callbacks/reduce_lr_on_plateau/) documentation.
+When we analyze the class we will see for example the explanation for the arguments that can be passed to the *\_\_init\_\_* method. Some of the arguments are listed below. A more detailed overview can be found at Keras [ReduceLROnPlateau](https://keras.io/api/callbacks/reduce_lr_on_plateau/) documentation.
 
 **Arguments**
 
@@ -176,7 +174,7 @@ When we analyze the class we will see for example the explanation for the argume
 
 * **cooldown**: number of epochs to wait before resuming normal operation after learning rate has been reduced.
 
-And more importantly, we can identify the underlying algorithm and when it’s called while training your neural network. The class uses two methods
+But more importantly, we can identify the underlying algorithm and when it’s called while training our neural network. The class uses two methods:
 
 * **on_train_begin()**: Called once when training begins and resetting wait and cooldown timer
 
@@ -186,15 +184,15 @@ And more importantly, we can identify the underlying algorithm and when it’s c
 
 ## Modify Reduce Learning Rate On Plateau
 
-Now that we have a detailed overview of the Reduce Learning Rate On Plateau algorithm, we can modify it for our needs. Moreover, we can implement the algorithm at the right position in our custom training and evaluation loop. In this tutorial, we will monitor the validation loss of our training model. First of all, we need to know that we cant use the internal arguments *self.model* as the model is an instance of keras.models.Model and a reference of the model being trained. So everything with *self.model* needs to be replaced and passed as an argument into the *\__init__* or *on_epoch_end()* method. The changes are marked as
+Now that we have a detailed overview of the Reduce Learning Rate On Plateau algorithm, we can modify it for our needs. Moreover, we can implement the algorithm at the right position in our custom training and evaluation loop. In this tutorial, we will monitor the validation loss of our training model. First of all, we need to know that we can not use the arguments *self.model *as the model is an instance of *keras.models.Model* and a reference of the model being trained. So everything with *self.model* needs to be replaced and passed as an argument into the *\_\_init\_\_* or *on_epoch_end()* method. I marked the changes in the code as following:
 
     ## Custom modification: "Reason for Modification"
 
-If we want to reduce the learning rate exponentially we need to add an argument to *\__init__* method and also modify the method *on_epoch_end()*.
+For reducing the learning rate exponentially we need to add an argument to *\_\_init\_\_* method and also modify the method *on_epoch_end().*
 
 ### Modfiy \_\_init\_\_
 
-Because we measure the validation loss of our neural network we can remove the *monitor* argument. Next, we want to set a boolean to set control whether we want to reduce the learning rate exponentially with *reduce_exp* and set its default value to *false*. Likewise, we need to pass the optimizer to the method.
+Because we measure the validation loss of our neural network we can remove the *monitor* argument. Next, we want to set a boolean *reduce_exp* to control whether we want to reduce the learning rate exponentially. Likewise, we need to pass the optimizer to the method.
 
 ```python
 # Original Callback found in tf.keras.callbacks.Callback
@@ -253,7 +251,7 @@ def __init__(self,
 
 ### Modify on_epoch_end()
 
-Now to the more complex part of the modification of the algorithm. Normally its method is called on every end of an epoch during training. In our case we additionally need to pass the loss of our validation dataset on every epoch end of our training to the method. 
+Normally the method is called on every end of an epoch during training. In our case we additionally need to pass the loss of our validation dataset and the epoch to *epoch_end()* on every epoch end of our training
 
 ```python
 # Original Callback found in tf.keras.callbacks.Callback
@@ -315,11 +313,20 @@ def epoch_end(self, epoch, loss, logs=None):
 
 ## Putting it all together
 
-Let’s put everything together and implement it in our custom training loop!
+Let’s put everything together and implement it in our custom training loop! First, we need to import and initiate the class like this:
 
-First, we need to import and initiate the class like this:
+```python
+from custom_callback import CustomReduceLRoP
 
-[https://gist.github.com/Pelk89/4019f009fb64b4e7cbfea5ac658fd75f](https://gist.github.com/Pelk89/4019f009fb64b4e7cbfea5ac658fd75f)
+
+reduce_rl_plateau = CustomReduceLRoP(patience=10, 
+                              verbose=1, 
+                              optim_lr=optimizer.learning_rate, 
+                              r_expo=True)
+
+```
+
+
 
 We set *reduce_exp* on true since we want to reduce the learning rate exponentially. Furthermore, we know from our analysis of the callback, that the callback will be called once on training start and whenever the epochs end. Simple add .*train_begin()* before the training loop is starting to reset the cooldown and wait timer. Next, add *.epoch_end()* at the end of your training loop.
 
@@ -386,8 +393,8 @@ After 10 epochs when the validation loss is not improving the learning rate will
 
 ## Conclusion
 
-By default, Keras provides convenient callbacks built-in callbacks for your training and evaluation loop for the *.fit()* method of a model. But when you write your custom training loop to get a low-level control for training and evaluation it’s not possible to use built-in callbacks.
+By default, Keras provides convenient callbacks built-in callbacks for your training and evaluation loop for the *.fit() *method of a model. But when you write your custom training loop to get a low-level control for training and evaluation it’s not simply possible to use built-in callbacks.
 
-In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implement the callback. Moreover, we modified the callback to reduce the learning rate exponentially.
+In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implemented callback. Moreover, we modified the callback to reduce the learning rate exponentially.
 
-I continuously want to improve my skill in machine learning. So If you have anything to add or have any ideas for this topic feel free to leave a comment.
+Thanks for reading this article. I continuously want to improve my skill in machine learning. So If you have anything to add or have any ideas for this topic feel free to leave a comment.
