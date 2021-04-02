@@ -190,7 +190,7 @@ Now that we have a detailed overview of the Reduce Learning Rate On Plateau algo
 
 For reducing the learning rate exponentially we need to add an argument to *\_\_init\_\_* method and also modify the method *on_epoch_end().*
 
-### Modfiy \_\_init\_\_
+### Modfiy \_\_init\_\_ and _reset
 
 Because we measure the validation loss of our neural network we can remove the *monitor* argument. Next, we want to set a boolean *reduce_exp* to control whether we want to reduce the learning rate exponentially. Likewise, we need to pass the optimizer to the method.
 
@@ -247,6 +247,30 @@ def __init__(self,
         
 
         self._reset()
+        
+```
+Next we need to remove the self.monitor in the _reset() method:
+
+```python
+    def _reset(self):
+        """Resets wait counter and cooldown counter.
+        """
+        if self.mode not in ['auto', 'min', 'max']:
+            print('Learning Rate Plateau Reducing mode %s is unknown, '
+                            'fallback to auto mode.', self.mode)
+            self.mode = 'auto'
+        if (self.mode == 'min' or
+                ## Custom modification: Deprecated due to focusing on validation loss
+                # (self.mode == 'auto' and 'acc' not in self.monitor)):
+                (self.mode == 'auto')):
+            self.monitor_op = lambda a, b: np.less(a, b - self.min_delta)
+            self.best = np.Inf
+        else:
+            self.monitor_op = lambda a, b: np.greater(a, b + self.min_delta)
+            self.best = -np.Inf
+        self.cooldown_counter = 0
+        self.wait = 0
+
 ```
 
 ### Modify on_epoch_end()

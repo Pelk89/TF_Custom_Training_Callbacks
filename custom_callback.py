@@ -1,5 +1,10 @@
+# Original Callback found in tf.keras.callbacks.Callback
+# Copyright The TensorFlow Authors and Keras Authors.
+
 import tensorflow as tf
 import numpy as np
+
+tf.keras.callbacks.Callback
 
 class CustomReduceLRoP():
 
@@ -108,10 +113,10 @@ class CustomReduceLRoP():
         self.cooldown_counter = 0
         self.wait = 0
 
-    def train_begin(self, logs=None):
+    def on_train_begin(self, logs=None):
         self._reset()
 
-    def epoch_end(self, epoch, loss, logs=None):
+    def on_epoch_end(self, epoch, loss, logs=None):
 
 
         logs = logs or {}
