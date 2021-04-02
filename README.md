@@ -247,7 +247,6 @@ def __init__(self,
         
 
         self._reset()
-        
 ```
 Next we need to remove the self.monitor in the _reset() method:
 
@@ -281,7 +280,7 @@ Normally the method is called on every end of an epoch during training. In our c
 # Original Callback found in tf.keras.callbacks.Callback
 # Copyright The TensorFlow Authors and Keras Authors.
 
-def epoch_end(self, epoch, loss, logs=None):
+def on_epoch_end(self, epoch, loss, logs=None):
 
 
         logs = logs or {}
@@ -366,7 +365,7 @@ We set *reduce_exp* on true since we want to reduce the learning rate exponentia
 epochs = 15
 
 ## Custom Modification: Reset cooldown and wait timer for the callback
-reduce_rl_plateau.train_begin()
+reduce_rl_plateau.on_train_begin()
 
 for epoch in range(epochs):
     print("\nStart of epoch %d" % (epoch,))
@@ -401,7 +400,7 @@ for epoch in range(epochs):
     print("Validation acc: %.4f" % (float(val_acc),))
 
     ## Custom Modification: pass epoch and validation loss to the callback 
-    reduce_rl_plateau.epoch_end(epoch, val_acc)
+    reduce_rl_plateau.on_epoch_end(epoch, val_acc)
 
 
 ```
