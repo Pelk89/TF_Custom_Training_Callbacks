@@ -425,7 +425,7 @@ for epoch in range(epochs):
 
 You made it! Finally, we can start the training of our neural network! Start the training of the neural network by simply cloning the repository and run the cells in the Jupyter Notebook.
 
-![Reducing the learning rate after 10 epochs of no improving the validation loss.](https://cdn-images-1.medium.com/max/2014/1*3z9FJ29sjSA5TJiqWae-AA.png)*Reducing the learning rate after 10 epochs of no improving the validation loss.*
+![Reducing the learning rate after 10 epochs of no improving the validation loss.](https://cdn-images-1.medium.com/max/906/1*ueobdZIb__ZyyDyt1f0xfw.png)*Reducing the learning rate after 10 epochs of no improving the validation loss.*
 
 
 
