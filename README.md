@@ -25,7 +25,7 @@ model.fit(dataset, epochs=10, callbacks=my_callbacks)
 
 At each stage of the training (e.g. at the start or end of an epoch) all relevant methods will be called automatically. You can find more detailed information about the callback methods in the Keras [documentation](https://keras.io/guides/writing_your_own_callbacks/). To write your Callbacks you should give the article [Building Custom Callbacks with Keras and TensorFlow 2](https://towardsdatascience.com/building-custom-callbacks-with-keras-and-tensorflow-2-85e1b79915a3) by [B. Chen](https://bindichen.medium.com/) a try.
 
-I won’t go into detail about how to implement a custom training loop. So if you want to have more information about that I recommend the [Keras Classification Tutorial](https://keras.io/guides/writing_a_training_loop_from_scratch/). For this tutorial, we will slightly modify the mentioned classification tutorial for the MNIST dataset. The MNIST dataset contains handwritten digits and is commonly used as toy example for Machine Learning. Furthermore, we will implement the widely used callback ReduceLROnPlateau and add also an exponential reduction of the learning rate.
+I won’t go into detail about how to implement a custom training loop. So if you want to have more information about that I recommend the [Keras Classification Tutorial](https://keras.io/guides/writing_a_training_loop_from_scratch/). For this tutorial, we will slightly modify the mentioned classification tutorial for the MNIST dataset. The MNIST dataset contains handwritten digits and is commonly used as toy example for Machine Learning. Furthermore, we will implement the widely used callback ReduceLROnPlateau and add also a linearly reduction of the learning rate.
 
 This tutorial can be found on [Github](https://github.com/Pelk89/TF_Custom_Training_Callbacks). Use git clone to run it locally in Jupyter notebook.
 ```bash
@@ -33,7 +33,7 @@ git clone https://github.com/Pelk89/TF_Custom_Training_Callbacks.git
 ```
 ## Reduce Learning Rate On Plateau
 
-Reducing the learning rate is often used when a metric has stopped improving. Moreover once the learning stagnates Machine Learning Models often benefit from reducing the learning rate *linearly*. But what if we want to reduce the learning rate exponentially when the metric has stopped improving? No problem at all! To understand what’s going on under the hood we need to go deeper into Keras library. Let’s dig a little bit to the heart of the Keras Callbacks in *tf.keras.callbacks.Callback.* Thanks to Francois Chollet and the other authors we will find an incredibly clean and comprehensible code for the class ReduceLROnPlateau. With this basis, we easily can reuse the existing code and use it for our purposes. How great is that?
+Reducing the learning rate is often used when a metric has stopped improving. Moreover once the learning stagnates Machine Learning Models often benefit from reducing the learning rate *exponentially*. But what if we want to reduce the learning rate *linearly* when the metric has stopped improving? No problem at all! To understand what’s going on under the hood we need to go deeper into Keras library. Let’s dig a little bit to the heart of the Keras Callbacks in *tf.keras.callbacks.Callback.* Thanks to Francois Chollet and the other authors we will find an incredibly clean and comprehensible code for the class ReduceLROnPlateau. With this basis, we easily can reuse the existing code and use it for our purposes. How great is that?
 
 ```python
 # Original Callback found in tf.keras.callbacks.Callback
@@ -178,7 +178,7 @@ But more importantly, we can identify the underlying algorithm and when it’s c
 
 * **on_train_begin()**: Called once when training begins and resetting wait and cooldown timer
 
-* **on_epoch_end()**: Called on every end of an epoch and change the learning rate linearly depended on the defined cooldown timer and patience.
+* **on_epoch_end()**: Called on every end of an epoch and change the learning rate exponentially depended on the defined cooldown timer and patience.
 
 
 
@@ -188,11 +188,11 @@ Now that we have a detailed overview of the Reduce Learning Rate On Plateau algo
 
     ## Custom modification: "Reason for Modification"
 
-For reducing the learning rate exponentially we need to add an argument to *\_\_init\_\_* method and also modify the method *on_epoch_end().*
+For reducing the learning rate linearly we need to add an argument to *\_\_init\_\_* method and also modify the method *on_epoch_end().*
 
 ### Modfiy \_\_init\_\_ and _reset
 
-Because we measure the validation loss of our neural network we can remove the *monitor* argument. Next, we want to set a boolean *reduce_exp* to control whether we want to reduce the learning rate exponentially. Likewise, we need to pass the optimizer to the method.
+Because we measure the validation loss of our neural network we can remove the *monitor* argument. Next, we want to set a boolean *reduce_exp* to control whether we want to reduce the learning rate linearly. Likewise, we need to pass the optimizer to the method.
 
 ```python
 # Original Callback found in tf.keras.callbacks.Callback
@@ -212,7 +212,7 @@ def __init__(self,
               sign_number = 4,
               ## Custom modification: Passing optimizer as arguement
               optim_lr = None,
-              ## Custom modification:  Exponentially reducing learning
+              ## Custom modification:  linearly reduction learning
               reduce_lin = False,
               **kwargs):
 
@@ -244,7 +244,7 @@ def __init__(self,
     self.sign_number = sign_number
     
 
-    ## Custom modification: Exponentially reducing learning
+    ## Custom modification: linearly reducing learning
     self.reduce_lin = reduce_lin
     self.reduce_lr = True
     
@@ -368,7 +368,7 @@ reduce_rl_plateau = CustomReduceLRoP(patience=2,
 
 
 
-We set *reduce_exp* on true since we want to reduce the learning rate exponentially. Furthermore, we know from our analysis of the callback, that the callback will be called once on training start and whenever the epochs end. Simple add .*train_begin()* before the training loop is starting to reset the cooldown and wait timer. Next, add *.epoch_end()* at the end of your training loop.
+We set *reduce_lin* on true since we want to reduce the learning rate linearly. Furthermore, we know from our analysis of the callback, that the callback will be called once on training start and whenever the epochs end. Simple add .*train_begin()* before the training loop is starting to reset the cooldown and wait timer. Next, add *.epoch_end()* at the end of your training loop.
 
 ```python
 # Writing a training loop from scratch
@@ -429,12 +429,12 @@ You made it! Finally, we can start the training of our neural network! Start the
 
 
 
-After 10 epochs when the validation loss is not improving the learning rate will be reduced exponentially!
+After 10 epochs when the validation loss is not improving the learning rate will be reduced linearly!
 
 ## Conclusion
 
 By default, Keras provides convenient callbacks built-in callbacks for your training and evaluation loop for the *.fit() *method of a model. But when you write your custom training loop to get a low-level control for training and evaluation it’s not simply possible to use built-in callbacks.
 
-In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implemented callback. Moreover, we modified the callback to reduce the learning rate linearity.
+In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implemented callback. Moreover, we modified the callback to reduce the learning rate linearly.
 
 Thanks for reading this article. I continuously want to improve my skill in machine learning. So If you have anything to add or have any ideas for this topic feel free to leave a comment.
