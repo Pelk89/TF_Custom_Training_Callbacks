@@ -197,56 +197,59 @@ Because we measure the validation loss of our neural network we can remove the *
 ```python
 # Original Callback found in tf.keras.callbacks.Callback
 # Copyright The TensorFlow Authors and Keras Authors.
+# Modification by Alexander Pelkmann
 
 def __init__(self,
-                 ## Custom modification:  Deprecated
-                 # monitor='val_loss',
-                 factor=0.1,
-                 patience=10,
-                 verbose=0,
-                 mode='auto',
-                 min_delta=1e-4,
-                 cooldown=0,
-                 min_lr=0,
-                 sign_number = 4,
-                 ## Custom modification: Passing optimizer as arguement
-                 optim_lr = None,
-                 ## Custom modification:  Exponentially reducing learning
-                 reduce_exp = False,
-                 **kwargs):
+              ## Custom modification:  Deprecated due to focusing on validation loss
+              # monitor='val_loss',
+              factor=0.1,
+              patience=10,
+              verbose=0,
+              mode='auto',
+              min_delta=1e-4,
+              cooldown=0,
+              min_lr=0,
+              sign_number = 4,
+              ## Custom modification: Passing optimizer as arguement
+              optim_lr = None,
+              ## Custom modification:  Exponentially reducing learning
+              reduce_lin = False,
+              **kwargs):
 
-        ## Custom modification:  Deprecated
-        # super(ReduceLROnPlateau, self).__init__()
+    ## Custom modification:  Deprecated
+    # super(ReduceLROnPlateau, self).__init__()
 
-        ## Custom modification:  Deprecated
-        # self.monitor = monitor
-        
-        ## Custom modification: Optimizer Error Handling
-        if tf.is_tensor(optim_lr) == False:
-            raise ValueError('Need optimizer !')
-        if factor >= 1.0:
-            raise ValueError('ReduceLROnPlateau ' 'does not support a factor >= 1.0.')
-        ## Custom modification: Passing optimizer as arguement
-        self.optim_lr = optim_lr  
+    ## Custom modification:  Deprecated
+    # self.monitor = monitor
+    
+    ## Custom modification: Optimizer Error Handling
+    if tf.is_tensor(optim_lr) == False:
+        raise ValueError('Need optimizer !')
+    if factor >= 1.0:
+        raise ValueError('ReduceLROnPlateau ' 'does not support a factor >= 1.0.')
+    ## Custom modification: Passing optimizer as arguement
+    self.optim_lr = optim_lr  
 
-        self.factor = factor
-        self.min_lr = min_lr
-        self.min_delta = min_delta
-        self.patience = patience
-        self.verbose = verbose
-        self.cooldown = cooldown
-        self.cooldown_counter = 0  # Cooldown counter.
-        self.wait = 0
-        self.best = 0
-        self.mode = mode
-        self.monitor_op = None
-        self.sign_number = sign_number
+    self.factor = factor
+    self.min_lr = min_lr
+    self.min_delta = min_delta
+    self.patience = patience
+    self.verbose = verbose
+    self.cooldown = cooldown
+    self.cooldown_counter = 0  # Cooldown counter.
+    self.wait = 0
+    self.best = 0
+    self.mode = mode
+    self.monitor_op = None
+    self.sign_number = sign_number
+    
 
-        ## Custom modification: Exponentially reducing learning
-        self.reduce_exp = reduce_exp
-        
+    ## Custom modification: Exponentially reducing learning
+    self.reduce_lin = reduce_lin
+    self.reduce_lr = True
+    
 
-        self._reset()
+    self._reset()
 ```
 Next we need to remove the self.monitor in the _reset() method:
 
@@ -277,61 +280,73 @@ Next we need to remove the self.monitor in the _reset() method:
 Normally the method is called on every end of an epoch during training. In our case we additionally need to pass the loss of our validation dataset and the epoch to *epoch_end()* on every epoch end of our training
 
 ```python
-# Original Callback found in tf.keras.callbacks.Callback
+# Original Callback found in tf.keras.callbacks.Callbac
 # Copyright The TensorFlow Authors and Keras Authors.
+# Modification by Alexander Pelkmann
 
 def on_epoch_end(self, epoch, loss, logs=None):
 
 
-        logs = logs or {}
-        ## Custom modification: Optimizer
-        # logs['lr'] = K.get_value(self.model.optimizer.lr) returns a numpy array
-        # and therefore can be modified to          
-        logs['lr'] = float(self.optim_lr.numpy())
+    logs = logs or {}
+    ## Custom modification: Optimizer
+    # logs['lr'] = K.get_value(self.model.optimizer.lr) returns a numpy array
+    # and therefore can be modified to          
+    logs['lr'] = float(self.optim_lr.numpy())
 
-        ## Custom modification: Deprecated due to focusing on validation loss
-        # current = logs.get(self.monitor)
+    ## Custom modification: Deprecated due to focusing on validation loss
+    # current = logs.get(self.monitor)
 
-        current = float(loss)
-        
-        ## Custom modification: Deprecated due to focusing on validation loss
-        # if current is None:
-        #     print('Reduce LR on plateau conditioned on metric `%s` '
-        #                     'which is not available. Available metrics are: %s',
-        #                     self.monitor, ','.join(list(logs.keys())))
+    current = float(loss)
+    
+    ## Custom modification: Deprecated due to focusing on validation loss
+    # if current is None:
+    #     print('Reduce LR on plateau conditioned on metric `%s` '
+    #                     'which is not available. Available metrics are: %s',
+    #                     self.monitor, ','.join(list(logs.keys())))
 
-        # else:
+    # else:
 
-        if self.in_cooldown():
-            self.cooldown_counter -= 1
-            self.wait = 0
+    if self.in_cooldown():
+        self.cooldown_counter -= 1
+        self.wait = 0
 
-        if self.monitor_op(current, self.best):
-            self.best = current
-            self.wait = 0
-        elif not self.in_cooldown():
-            self.wait += 1
-            if self.wait >= self.patience:
+    if self.monitor_op(current, self.best):
+        self.best = current
+        self.wait = 0
+    elif not self.in_cooldown():
+        self.wait += 1
+        if self.wait >= self.patience:
+            
+            ## Custom modification: Optimizer Learning Rate
+            # old_lr = float(K.get_value(self.model.optimizer.lr))
+            old_lr = float(self.optim_lr.numpy())
+            if old_lr > self.min_lr and self.reduce_lr == True:
+                ## Custom modification: Linear learning Rate
+                if self.reduce_lin == True:
+                    new_lr = old_lr - self.factor
+                    ## Custom modification: Error Handling when learning rate is below zero
+                    if new_lr <= 0:
+                        print('Learning Rate is below zero: {}, '
+                        'fallback to previous learning rate: {}. '
+                        'Stop reducing learning rate during training.'.format(new_lr, old_lr))  
+                        new_lr = old_lr
+                        self.reduce_lr = False                           
+                else:
+                    new_lr = old_lr * self.factor                   
                 
-                ## Custom modification: Optimizer Learning Rate
-                # old_lr = float(K.get_value(self.model.optimizer.lr))
-                old_lr = float(self.optim_lr.numpy())
-                if old_lr > self.min_lr:
-                    ## Custom modification: Exponential learning Rate
-                    if self.reduce_exp == True:
-                        new_lr = old_lr * tf.math.exp(-0.1)
-                    else:
-                        new_lr = old_lr * self.factor
-                    new_lr = max(new_lr, self.min_lr)
 
-                    ## Custom modification: Optimizer Learning Rate
-                    # K.set_value(self.model.optimizer.lr, new_lr)
-                    self.optim_lr.assign(new_lr)
-                    if self.verbose > 0:
-                        print('\nEpoch %05d: ReduceLROnPlateau reducing learning '
-                                'rate to %s.' % (epoch + 1, float(new_lr)))
-                    self.cooldown_counter = self.cooldown
-                    self.wait = 0
+                new_lr = max(new_lr, self.min_lr)
+
+
+                ## Custom modification: Optimizer Learning Rate
+                # K.set_value(self.model.optimizer.lr, new_lr)
+                self.optim_lr.assign(new_lr)
+                
+                if self.verbose > 0:
+                    print('\nEpoch %05d: ReduceLROnPlateau reducing learning '
+                            'rate to %s.' % (epoch + 1, float(new_lr)))
+                self.cooldown_counter = self.cooldown
+                self.wait = 0
 ```
 
 ## Putting it all together
@@ -342,11 +357,13 @@ Let’s put everything together and implement it in our custom training loop! Fi
 from custom_callback import CustomReduceLRoP
 
 
-reduce_rl_plateau = CustomReduceLRoP(patience=10, 
+## Custom Modification: Set reduce_lin true for linear reducing; Set factor to reduce learning rate by 0.0001
+
+reduce_rl_plateau = CustomReduceLRoP(patience=2,
+                              factor=0.0001,
                               verbose=1, 
                               optim_lr=optimizer.learning_rate, 
-                              r_expo=True)
-
+                              reduce_lin=True)
 ```
 
 
@@ -418,6 +435,6 @@ After 10 epochs when the validation loss is not improving the learning rate will
 
 By default, Keras provides convenient callbacks built-in callbacks for your training and evaluation loop for the *.fit() *method of a model. But when you write your custom training loop to get a low-level control for training and evaluation it’s not simply possible to use built-in callbacks.
 
-In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implemented callback. Moreover, we modified the callback to reduce the learning rate exponentially.
+In this tutorial, we implemented the famous reduce learning rate on plateau callback by using its natively implemented callback. Moreover, we modified the callback to reduce the learning rate linearity.
 
 Thanks for reading this article. I continuously want to improve my skill in machine learning. So If you have anything to add or have any ideas for this topic feel free to leave a comment.
