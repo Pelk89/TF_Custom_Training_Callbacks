@@ -58,7 +58,7 @@ class CustomReduceLRoP():
                  ## Custom modification: Passing optimizer as arguement
                  optim_lr = None,
                  ## Custom modification:  Exponentially reducing learning
-                 reduce_exp = False,
+                 reduce_lin = False,
                  **kwargs):
 
         ## Custom modification:  Deprecated
@@ -87,9 +87,11 @@ class CustomReduceLRoP():
         self.mode = mode
         self.monitor_op = None
         self.sign_number = sign_number
+        
 
         ## Custom modification: Exponentially reducing learning
-        self.reduce_exp = reduce_exp
+        self.reduce_lin = reduce_lin
+        self.reduce_lr = True
         
 
         self._reset()
@@ -152,17 +154,28 @@ class CustomReduceLRoP():
                 ## Custom modification: Optimizer Learning Rate
                 # old_lr = float(K.get_value(self.model.optimizer.lr))
                 old_lr = float(self.optim_lr.numpy())
-                if old_lr > self.min_lr:
-                    ## Custom modification: Exponential learning Rate
-                    if self.reduce_exp == True:
-                        new_lr = old_lr * tf.math.exp(-0.1)
+                if old_lr > self.min_lr and self.reduce_lr == True:
+                    ## Custom modification: Linear learning Rate
+                    if self.reduce_lin == True:
+                        new_lr = old_lr - self.factor
+                        ## Custom modification: Error Handling when learning rate is below zero
+                        if new_lr <= 0:
+                            print('Learning Rate is below zero: {}, '
+                            'fallback to previous learning rate: {}. '
+                            'Stop reducing learning rate during training.'.format(new_lr, old_lr))  
+                            new_lr = old_lr
+                            self.reduce_lr = False                           
                     else:
-                        new_lr = old_lr * self.factor
+                        new_lr = old_lr * self.factor                   
+                    
+
                     new_lr = max(new_lr, self.min_lr)
+
 
                     ## Custom modification: Optimizer Learning Rate
                     # K.set_value(self.model.optimizer.lr, new_lr)
                     self.optim_lr.assign(new_lr)
+                    
                     if self.verbose > 0:
                         print('\nEpoch %05d: ReduceLROnPlateau reducing learning '
                                 'rate to %s.' % (epoch + 1, float(new_lr)))
