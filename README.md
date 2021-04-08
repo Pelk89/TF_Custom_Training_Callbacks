@@ -287,66 +287,65 @@ Normally the method is called on every end of an epoch during training. In our c
 def on_epoch_end(self, epoch, loss, logs=None):
 
 
-    logs = logs or {}
-    ## Custom modification: Optimizer
-    # logs['lr'] = K.get_value(self.model.optimizer.lr) returns a numpy array
-    # and therefore can be modified to          
-    logs['lr'] = float(self.optim_lr.numpy())
+  logs = logs or {}
+  ## Custom modification: Optimizer
+  # logs['lr'] = K.get_value(self.model.optimizer.lr) returns a numpy array
+  # and therefore can be modified to          
+  logs['lr'] = float(self.optim_lr.numpy())
 
-    ## Custom modification: Deprecated due to focusing on validation loss
-    # current = logs.get(self.monitor)
+  ## Custom modification: Deprecated due to focusing on validation loss
+  # current = logs.get(self.monitor)
 
-    current = float(loss)
-    
-    ## Custom modification: Deprecated due to focusing on validation loss
-    # if current is None:
-    #     print('Reduce LR on plateau conditioned on metric `%s` '
-    #                     'which is not available. Available metrics are: %s',
-    #                     self.monitor, ','.join(list(logs.keys())))
+  current = float(loss)
+  
+  ## Custom modification: Deprecated due to focusing on validation loss
+  # if current is None:
+  #     print('Reduce LR on plateau conditioned on metric `%s` '
+  #                     'which is not available. Available metrics are: %s',
+  #                     self.monitor, ','.join(list(logs.keys())))
 
-    # else:
+  # else:
 
-    if self.in_cooldown():
-        self.cooldown_counter -= 1
-        self.wait = 0
+  if self.in_cooldown():
+      self.cooldown_counter -= 1
+      self.wait = 0
 
-    if self.monitor_op(current, self.best):
-        self.best = current
-        self.wait = 0
-    elif not self.in_cooldown():
-        self.wait += 1
-        if self.wait >= self.patience:
-            
-            ## Custom modification: Optimizer Learning Rate
-            # old_lr = float(K.get_value(self.model.optimizer.lr))
-            old_lr = float(self.optim_lr.numpy())
-            if old_lr > self.min_lr and self.reduce_lr == True:
-                ## Custom modification: Linear learning Rate
-                if self.reduce_lin == True:
-                    new_lr = old_lr - self.factor
-                    ## Custom modification: Error Handling when learning rate is below zero
-                    if new_lr <= 0:
-                        print('Learning Rate is below zero: {}, '
-                        'fallback to previous learning rate: {}. '
-                        'Stop reducing learning rate during training.'.format(new_lr, old_lr))  
-                        new_lr = old_lr
-                        self.reduce_lr = False                           
-                else:
-                    new_lr = old_lr * self.factor                   
-                
+  if self.monitor_op(current, self.best):
+      self.best = current
+      self.wait = 0
+  elif not self.in_cooldown():
+      self.wait += 1
+      if self.wait >= self.patience:
+          
+          ## Custom modification: Optimizer Learning Rate
+          # old_lr = float(K.get_value(self.model.optimizer.lr))
+          old_lr = float(self.optim_lr.numpy())
+          if old_lr > self.min_lr and self.reduce_lr == True:
+              ## Custom modification: Linear learning Rate
+              if self.reduce_lin == True:
+                  new_lr = old_lr - self.factor
+                  ## Custom modification: Error Handling when learning rate is below zero
+                  if new_lr <= 0:
+                      print('Learning Rate is below zero: {}, '
+                      'fallback to minimal learning rate: {}. '
+                      'Stop reducing learning rate during training.'.format(new_lr, self.min_lr))  
+                      self.reduce_lr = False                           
+              else:
+                  new_lr = old_lr * self.factor                   
+              
 
-                new_lr = max(new_lr, self.min_lr)
+              new_lr = max(new_lr, self.min_lr)
 
 
-                ## Custom modification: Optimizer Learning Rate
-                # K.set_value(self.model.optimizer.lr, new_lr)
-                self.optim_lr.assign(new_lr)
-                
-                if self.verbose > 0:
-                    print('\nEpoch %05d: ReduceLROnPlateau reducing learning '
-                            'rate to %s.' % (epoch + 1, float(new_lr)))
-                self.cooldown_counter = self.cooldown
-                self.wait = 0
+              ## Custom modification: Optimizer Learning Rate
+              # K.set_value(self.model.optimizer.lr, new_lr)
+              self.optim_lr.assign(new_lr)
+              
+              if self.verbose > 0:
+                  print('\nEpoch %05d: ReduceLROnPlateau reducing learning '
+                          'rate to %s.' % (epoch + 1, float(new_lr)))
+              self.cooldown_counter = self.cooldown
+              self.wait = 0
 ```
 
 ## Putting it all together
