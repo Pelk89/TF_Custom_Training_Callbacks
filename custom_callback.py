@@ -4,8 +4,6 @@
 import tensorflow as tf
 import numpy as np
 
-tf.keras.callbacks.Callback
-
 class CustomReduceLRoP():
 
     """ Reduce learning rate when a metric has stopped improving.
@@ -161,9 +159,8 @@ class CustomReduceLRoP():
                         ## Custom modification: Error Handling when learning rate is below zero
                         if new_lr <= 0:
                             print('Learning Rate is below zero: {}, '
-                            'fallback to previous learning rate: {}. '
-                            'Stop reducing learning rate during training.'.format(new_lr, old_lr))  
-                            new_lr = old_lr
+                            'fallback to minimal learning rate: {}. '
+                            'Stop reducing learning rate during training.'.format(new_lr, self.min_lr))  
                             self.reduce_lr = False                           
                     else:
                         new_lr = old_lr * self.factor                   
